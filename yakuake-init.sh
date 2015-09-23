@@ -6,12 +6,13 @@
 #
 # E.G.:
 #
-# ==================== yakuakue_desktop.config ====================
-# htop,htop
-# journalctl,journalctl --follow --full
-# proj,cd /srv/proj && clear
+# ==================== sample.config ====================
+# # A sample configuration file for yakuake-init.sh
+# htop,       htop
+# journalctl, journalctl --follow --full
+# proj,       cd /srv/proj && clear
 # shell
-# =================================================================
+# =======================================================
 
 # Trim leading/trailing white space.
 # Cribbed from http://stackoverflow.com/a/3352015, thanks bashfu
