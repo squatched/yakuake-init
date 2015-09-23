@@ -98,6 +98,12 @@ then
             continue
         fi
 
+        # Skip any blank lines.
+        if [[ -z "${tab_title}" ]] && [[ -z "${tab_command}" ]]
+        then
+            continue
+        fi
+
         # Create the new tab
         tab_id=$(add_tab)
 
