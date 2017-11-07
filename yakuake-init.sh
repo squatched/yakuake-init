@@ -33,9 +33,10 @@ trim ()
 # view log:
 # $ tail -f /var/log/syslog
 #
+SCRIPT_NAME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 logm ()
 {
-    logger $(trim ${1})
+    logger --tag ${SCRIPT_NAME} $(trim ${1}) --priority 7
 }
 
 # Helper that sends a command to yakuake
@@ -47,33 +48,27 @@ call_yakuake_method ()
 
     if [[ -z "${parameters}" ]]
     then
-	    result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method})
-	else
-		case "$method" in
-		"terminalIdsForSessionId")
-			result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
-			;;
-#		"methodX" | "methodY")
-#			do_something_else()
-#			;;
-		*)
-			result=$(dbus-send --type=method_call --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
-			;;
-		esac
+        result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method})
+    else
+        case "$method" in
+            "terminalIdsForSessionId")
+                result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
+                ;;
+            *)
+                result=$(dbus-send --type=method_call --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
+                ;;
+        esac
     fi
 
     result=$(trim ${result})
 
-#    if [[ -n "${result}" ]]
-#    then
-        echo "${result}"
-#    fi
+    echo "${result}"
 }
 
 # Retrieves the currently active session id
 get_active_session_id ()
 {
-	logm "get_active_session_id = yes"
+    logm "get_active_session_id = yes"
     call_yakuake_method sessions activeSessionId | rev | cut -d" " -f1 | rev
 }
 
@@ -107,7 +102,6 @@ set_tab_title ()
 # Takes a tab id and the command string
 run_tab_command_in_first_terminal ()
 {
-
     terminals=$(get_terminal_ids_for_tab "${1}")
     call_yakuake_method sessions runCommandInTerminal "int32:${terminals[0]}" "string:${@:2}"
 }
@@ -119,10 +113,10 @@ then
 else
     logm "yakuake is stopped! Try to start."
 
-	# This line is needed in case yakuake does not accept fcitx inputs.
-	/usr/bin/yakuake --im /usr/bin/fcitx --inputstyle onthespot &
+    # This line is needed in case yakuake does not accept fcitx inputs.
+    /usr/bin/yakuake --im /usr/bin/fcitx --inputstyle onthespot &
 
-	sleep 2
+    sleep 2
 fi
 
 
@@ -132,7 +126,7 @@ if [[ -n "${config_file_name}" ]]
 then
     INITIAL_SESSION_ID=$(get_active_session_id)
 
-	logm "INITIAL_SESSION_ID: $INITIAL_SESSION_ID"
+    logm "INITIAL_SESSION_ID: $INITIAL_SESSION_ID"
 
     while IFS=, read -r tab_title tab_command;
     do
@@ -166,7 +160,6 @@ then
         then
             run_tab_command_in_first_terminal "${tab_id}" "${tab_command}"
         fi
-
     done <"${config_file_name}"
 
     set_active_session ${INITIAL_SESSION_ID}
