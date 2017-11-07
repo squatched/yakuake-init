@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
+set -euo pipefail
+
 # Startup yakuake with specific tabs opened, titles, and commands run.
 #   Expects a file to be passed to it that contains on each line, the name
 #   to give the new tab and the command to be run to initialize the tab,
@@ -46,7 +48,8 @@ call_yakuake_method ()
     method="${2}"
     parameters=("${@:3}")
 
-    if [[ -z "${parameters}" ]]
+    # Freaking magic...
+    if [[ -z ${parameters[@]+"${parameters[@]}"} ]]
     then
         result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method})
     else
