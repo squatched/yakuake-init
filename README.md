@@ -23,5 +23,6 @@ The command run to initialize the tab is everything after the comma.
 | Command | Description |
 |--------|----------|
 |`htop, htop`|Creates a tab named "htop" and runs htop in the tab.|
-|`, cd /proj && clear`|Creates a tab, changes directory to `/proj` then clears the console.|
-|`shell`|Creates a tab that|
+|`journalctl, journalctl --follow`|Show only the most recent journal entries, and continuously print new entries as they are appended to the journal.|
+|`home, cd ~ && clear`| Creates a tab, changes directory to your home then clears the console.|
+|`shell【ツ】`|Creates a new shell tab.|

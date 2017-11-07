@@ -25,24 +25,50 @@ trim ()
     echo $var
 }
 
+# debugging helper function
+#
+# usage:
+# logm "There is an ERROR o.O!"
+#
+# view log:
+# $ tail -f /var/log/syslog
+#
+SCRIPT_NAME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+logm ()
+{
+    logger --tag ${SCRIPT_NAME} $(trim ${1}) --priority 7
+}
+
 # Helper that sends a command to yakuake
 call_yakuake_method ()
 {
     path="${1}"
     method="${2}"
     parameters=("${@:3}")
-    result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
+
+    if [[ -z "${parameters}" ]]
+    then
+        result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method})
+    else
+        case "$method" in
+            "terminalIdsForSessionId")
+                result=$(dbus-send --print-reply=literal --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
+                ;;
+            *)
+                result=$(dbus-send --type=method_call --dest=org.kde.yakuake /yakuake/${path} org.kde.yakuake.${method} "${parameters[@]}")
+                ;;
+        esac
+    fi
+
     result=$(trim ${result})
 
-    if [[ -n "${result}" ]]
-    then
-        echo "${result}"
-    fi
+    echo "${result}"
 }
 
 # Retrieves the currently active session id
 get_active_session_id ()
 {
+    logm "get_active_session_id = yes"
     call_yakuake_method sessions activeSessionId | rev | cut -d" " -f1 | rev
 }
 
@@ -56,7 +82,7 @@ set_active_session ()
 get_terminal_ids_for_tab ()
 {
     # These tab ids are returned comma delimited. Replace the commas for easier time
-    #   getting the results as an array.
+    # getting the results as an array.
     call_yakuake_method sessions terminalIdsForSessionId "int32:${1}" | sed -e 's/,/ /g'
 }
 
@@ -76,16 +102,32 @@ set_tab_title ()
 # Takes a tab id and the command string
 run_tab_command_in_first_terminal ()
 {
-    terminals=($(get_terminal_ids_for_tab "${1}"))
+    terminals=$(get_terminal_ids_for_tab "${1}")
     call_yakuake_method sessions runCommandInTerminal "int32:${terminals[0]}" "string:${@:2}"
 }
+
+# check yakuake is running
+if pgrep -x "yakuake" > /dev/null
+then
+    logm "yakuake is still running!"
+else
+    logm "yakuake is stopped! Try to start."
+
+    # This line is needed in case yakuake does not accept fcitx inputs.
+    /usr/bin/yakuake --im /usr/bin/fcitx --inputstyle onthespot &
+
+    sleep 2
+fi
+
 
 # If we're given a file name, then process it. (Allows this script to be dot sourced)
 config_file_name="${*}"
 if [[ -n "${config_file_name}" ]]
 then
     INITIAL_SESSION_ID=$(get_active_session_id)
-    
+
+    logm "INITIAL_SESSION_ID: $INITIAL_SESSION_ID"
+
     while IFS=, read -r tab_title tab_command;
     do
         # Trim variables.
@@ -112,7 +154,7 @@ then
         then
             set_tab_title "${tab_id}" "${tab_title}"
         fi
-        
+
         # Run the command.
         if [[ -n "${tab_command}" ]]
         then
